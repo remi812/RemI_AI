@@ -1,0 +1,26 @@
+# Пароли и локальная конфигурация
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Архивы данных и резервные копии базы
+*.zip
+*.backup
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+
+# Локальные файлы и рабочие каталоги
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.DS_Store
+Thumbs.db
+database-plan.json

@@ -1,0 +1,43 @@
+{
+  "window": "day 0 through day 27 inclusive",
+  "unit": "student, module, presentation",
+  "eligible_rule": "registration day <= 0 and no recorded withdrawal on days <= 27",
+  "eligible_enrollments": 27322,
+  "exclusions": {
+    "withdrawal_on_or_before_day_27": 4992,
+    "registered_after_day_zero": 234,
+    "registration_unknown": 45
+  },
+  "activity_rows_in_window_for_eligible": 2052023,
+  "groups_by_eventual_final_result": {
+    "Distinction": {
+      "enrollments": 3008,
+      "no_logged_activity_in_window": 29,
+      "median_clicks": 299.5,
+      "mean_clicks": 428.36,
+      "median_active_days": 14.0
+    },
+    "Fail": {
+      "enrollments": 6972,
+      "no_logged_activity_in_window": 693,
+      "median_clicks": 104.0,
+      "mean_clicks": 177.44,
+      "median_active_days": 6.0
+    },
+    "Pass": {
+      "enrollments": 12258,
+      "no_logged_activity_in_window": 194,
+      "median_clicks": 219.0,
+      "mean_clicks": 318.56,
+      "median_active_days": 11.0
+    },
+    "Withdrawn": {
+      "enrollments": 5084,
+      "no_logged_activity_in_window": 291,
+      "median_clicks": 143.0,
+      "mean_clicks": 226.03,
+      "median_active_days": 8.0
+    }
+  },
+  "limitations": "Descriptive retrospective grouping; absence of logs is not proof of no learning; final outcome is not an available early feature."
+}

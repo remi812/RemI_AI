@@ -1,0 +1,81 @@
+{
+  "source": "https://doi.org/10.24432/C5KK69",
+  "files": {
+    "courses.csv": {
+      "rows": 22,
+      "modules": 7,
+      "presentations": 22
+    },
+    "studentInfo.csv": {
+      "rows": 32593,
+      "unique_student_ids": 28785,
+      "unique_enrollments": 32593,
+      "results": {
+        "Distinction": 3024,
+        "Fail": 7052,
+        "Pass": 12361,
+        "Withdrawn": 10156
+      },
+      "missing_total": 1111,
+      "unmatched_courses": 0
+    },
+    "studentRegistration.csv": {
+      "rows": 32593,
+      "missing_registration_date": 45,
+      "missing_unregistration_date": 22521,
+      "unmatched_enrollments": 0
+    },
+    "assessments.csv": {
+      "rows": 206,
+      "types": {
+        "CMA": 76,
+        "Exam": 24,
+        "TMA": 106
+      },
+      "missing_date": 11,
+      "unique_ids": 206
+    },
+    "studentAssessment.csv": {
+      "rows": 173912,
+      "missing_score": 173,
+      "mean_score_nonmissing": 75.8,
+      "unmatched_assessments": 0,
+      "unmatched_enrollments": 0,
+      "banked": 1909
+    },
+    "vle.csv": {
+      "rows": 6364,
+      "activity_types": {
+        "dataplus": 28,
+        "dualpane": 20,
+        "externalquiz": 26,
+        "folder": 2,
+        "forumng": 194,
+        "glossary": 21,
+        "homepage": 22,
+        "htmlactivity": 4,
+        "oucollaborate": 82,
+        "oucontent": 996,
+        "ouelluminate": 21,
+        "ouwiki": 49,
+        "page": 102,
+        "questionnaire": 61,
+        "quiz": 127,
+        "repeatactivity": 5,
+        "resource": 2660,
+        "sharedsubpage": 3,
+        "subpage": 1055,
+        "url": 886
+      },
+      "missing_week_from": 5243,
+      "missing_week_to": 5243
+    },
+    "studentVle.csv": {
+      "rows": 10655280,
+      "total_clicks": 39605099,
+      "rows_before_start": 688988,
+      "unmatched_enrollments": 0,
+      "unmatched_material_ids": 0
+    }
+  }
+}
