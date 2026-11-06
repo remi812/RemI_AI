@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#f7f8f4">
   <title>RemI AI — пространство обучения</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/demo-data.js" defer></script>
+  <script src="/static/demo-engine.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -49,6 +51,19 @@
         <div class="topics-head"><div><div class="section-kicker">ВЫБРАННАЯ ДИСЦИПЛИНА</div><h2 id="topics-title"></h2><p>Темы, с которых можно начать знакомство.</p></div><button id="close-topics" class="close-button" type="button" aria-label="Закрыть темы">×</button></div>
         <div id="topics-message" role="status" aria-live="polite"></div>
         <ul id="topics-list" class="topics-list"></ul>
+        <div class="demo-callout"><div><strong>Хочешь попробовать?</strong><p id="demo-availability">Посмотри, как может выглядеть тест по этой дисциплине.</p></div><button id="start-demo" class="primary-button" type="button">Начать пример <span aria-hidden="true">↗</span></button></div>
+      </section>
+
+      <section id="demo-section" class="demo-section" hidden aria-labelledby="demo-title" tabindex="-1">
+        <div class="demo-header"><div><div class="section-kicker">УЧЕБНЫЙ ПРИМЕР</div><h2 id="demo-title">Пробный тест</h2><p id="demo-discipline"></p></div><button id="close-demo" class="close-button" type="button" aria-label="Закрыть пробный тест">×</button></div>
+        <p class="demo-notice">Это демонстрация: вопросы не проверены преподавателем, ответы не сохраняются и не оценивают знания.</p>
+        <div id="demo-progress" class="demo-progress" aria-live="polite"></div>
+        <form id="demo-form">
+          <fieldset id="demo-fieldset"><legend id="demo-question" class="demo-question" tabindex="-1"></legend><div id="demo-options" class="demo-options"></div></fieldset>
+          <div id="demo-feedback" class="demo-feedback" role="status" aria-live="polite" tabindex="-1" hidden></div>
+          <div class="demo-actions"><button id="check-answer" class="primary-button" type="submit" disabled>Проверить ответ</button><button id="next-question" class="primary-button" type="button" hidden>Следующий вопрос <span aria-hidden="true">→</span></button></div>
+        </form>
+        <div id="demo-finished" class="demo-finished" hidden><strong>Пример завершён</strong><p>Ты посмотрел, как может работать тест. Ответы не сохранены.</p><button id="restart-demo" class="secondary-button" type="button">Попробовать ещё раз</button></div>
       </section>
 
       <footer><span>✳ &nbsp; RemI AI</span><span>Учись в своём темпе <span aria-hidden="true">↗</span></span></footer>

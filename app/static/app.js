@@ -7,6 +7,13 @@ const topicsMessage = document.querySelector('#topics-message');
 const topicsList = document.querySelector('#topics-list');
 const patterns = ['∑', '∫', '{ }', '◈', '⌁'];
 let topicsRequest = 0;
+let selectedDiscipline = null;
+let demoState = null;
+const demoSection = document.querySelector('#demo-section');
+const demoForm = document.querySelector('#demo-form');
+const demoOptions = document.querySelector('#demo-options');
+const checkAnswer = document.querySelector('#check-answer');
+const nextQuestion = document.querySelector('#next-question');
 
 function topicWord(number) {
   const last = number % 10;
@@ -24,6 +31,13 @@ async function getJson(url) {
 
 async function showTopics(discipline, button) {
   const request = ++topicsRequest;
+  selectedDiscipline = discipline;
+  demoState = null;
+  demoSection.hidden = true;
+  document.querySelector('#start-demo').disabled = !RemiDemoQuestions[discipline.name];
+  document.querySelector('#demo-availability').textContent = RemiDemoQuestions[discipline.name]
+    ? 'Посмотри, как может выглядеть тест по этой дисциплине.'
+    : 'Для этой дисциплины пример пока не подготовлен.';
   document.querySelectorAll('.discipline-card').forEach(card => {
     card.classList.remove('selected');
     card.setAttribute('aria-pressed', 'false');
@@ -104,11 +118,89 @@ async function loadDisciplines() {
 
 document.querySelector('#close-topics').addEventListener('click', () => {
   topicsRequest++;
+  selectedDiscipline = null;
+  demoState = null;
+  demoSection.hidden = true;
   topicsSection.hidden = true;
   document.querySelectorAll('.discipline-card').forEach(card => {
     card.classList.remove('selected');
     card.setAttribute('aria-pressed', 'false');
   });
+});
+
+function renderDemo() {
+  const finished = document.querySelector('#demo-finished');
+  const progress = document.querySelector('#demo-progress');
+  demoForm.hidden = demoState.finished;
+  finished.hidden = !demoState.finished;
+  if (demoState.finished) {
+    progress.textContent = '';
+    return;
+  }
+  const question = demoState.questions[demoState.index];
+  progress.textContent = `ВОПРОС ${demoState.index + 1} ИЗ ${demoState.questions.length}`;
+  document.querySelector('#demo-question').textContent = question.question;
+  demoOptions.replaceChildren();
+  for (const [index, text] of question.options.entries()) {
+    const label = document.createElement('label');
+    label.className = 'demo-option';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'demo-answer';
+    input.value = String(index);
+    input.disabled = demoState.checked;
+    input.checked = demoState.chosen === index;
+    input.addEventListener('change', () => { checkAnswer.disabled = false; });
+    const caption = document.createElement('span');
+    caption.textContent = text;
+    label.append(input, caption);
+    demoOptions.append(label);
+  }
+  const feedback = document.querySelector('#demo-feedback');
+  feedback.hidden = !demoState.checked;
+  if (demoState.checked) {
+    const isCorrect = demoState.chosen === question.answer;
+    feedback.textContent = `${isCorrect ? 'Верно.' : 'Не совсем.'} ${question.explanation}`;
+    feedback.classList.toggle('incorrect', !isCorrect);
+  }
+  checkAnswer.hidden = demoState.checked;
+  checkAnswer.disabled = true;
+  nextQuestion.hidden = !demoState.checked;
+  nextQuestion.textContent = demoState.index + 1 === demoState.questions.length ? 'Завершить пример' : 'Следующий вопрос →';
+}
+
+function startDemo() {
+  const questions = selectedDiscipline && RemiDemoQuestions[selectedDiscipline.name];
+  if (!questions) return;
+  demoState = RemiDemoEngine.start(questions);
+  document.querySelector('#demo-discipline').textContent = selectedDiscipline.name;
+  demoSection.hidden = false;
+  renderDemo();
+  demoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  demoSection.focus({ preventScroll: true });
+}
+
+document.querySelector('#start-demo').addEventListener('click', startDemo);
+document.querySelector('#restart-demo').addEventListener('click', startDemo);
+document.querySelector('#close-demo').addEventListener('click', () => {
+  demoSection.hidden = true;
+  demoState = null;
+  document.querySelector('#start-demo').focus();
+});
+demoForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const chosen = demoForm.querySelector('input[name="demo-answer"]:checked');
+  if (!chosen || !demoState || demoState.checked) return;
+  demoState = RemiDemoEngine.answer(demoState, Number(chosen.value));
+  renderDemo();
+  document.querySelector('#demo-feedback').focus();
+});
+nextQuestion.addEventListener('click', () => {
+  if (!demoState || !demoState.checked) return;
+  demoState = RemiDemoEngine.next(demoState);
+  renderDemo();
+  if (demoState.finished) document.querySelector('#restart-demo').focus();
+  else document.querySelector('#demo-question').focus();
 });
 
 loadDisciplines();
