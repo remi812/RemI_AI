@@ -1,0 +1,49 @@
+{
+  "sessions": 3000,
+  "answers": {
+    "initial": 12000,
+    "followup": 9000
+  },
+  "missing": {
+    "session_id": 0,
+    "initial_equations_count": 0,
+    "initial_equations_correct": 0,
+    "initial_derivatives_count": 0,
+    "initial_derivatives_correct": 0,
+    "followup_count": 0,
+    "followup_correct": 0,
+    "needs_review": 0
+  },
+  "invalid": 0,
+  "duplicate": 0,
+  "clean": 3000,
+  "target_positive": 1517,
+  "by_derivatives": {
+    "0": {
+      "count": 907,
+      "review": 654
+    },
+    "1": {
+      "count": 1190,
+      "review": 619
+    },
+    "2": {
+      "count": 903,
+      "review": 244
+    }
+  },
+  "by_equations": {
+    "0": {
+      "count": 953,
+      "review": 608
+    },
+    "1": {
+      "count": 1417,
+      "review": 704
+    },
+    "2": {
+      "count": 630,
+      "review": 205
+    }
+  }
+}
