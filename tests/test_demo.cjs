@@ -38,7 +38,7 @@ test('интерфейс проходит два вопроса и не отпр
   class Element {
     constructor(tag = 'div') {
       this.tag = tag; this.children = []; this.listeners = {}; this.hidden = false;
-      this.disabled = false; this.checked = false; this.textContent = ''; this.attributes = {};
+      this.disabled = false; this.checked = false; this.textContent = ''; this.attributes = {}; this.style = {};
       this.classList = { add() {}, remove() {}, toggle() {} };
     }
     append(...children) { this.children.push(...children); }
@@ -51,18 +51,20 @@ test('интерфейс проходит два вопроса и не отпр
       return elements['#demo-options'].children.map(label => label.children[0]).find(input => input.checked) || null;
     }
   }
-  const ids = ['discipline-list', 'message', 'count', 'topics-section', 'topics-title', 'topics-message', 'topics-list', 'close-topics', 'start-demo', 'demo-availability', 'demo-section', 'demo-form', 'demo-options', 'check-answer', 'next-question', 'demo-finished', 'demo-progress', 'demo-question', 'demo-feedback', 'demo-discipline', 'restart-demo', 'close-demo'];
+  const ids = ['topic-map-view', 'topic-preview', 'topic-preview-graph', 'topic-back', 'discipline-list', 'message', 'count', 'topics-section', 'topics-title', 'topics-message', 'topics-list', 'resource-list', 'close-topics', 'start-demo', 'demo-availability', 'demo-section', 'demo-form', 'demo-options', 'check-answer', 'next-question', 'demo-finished', 'demo-progress', 'demo-question', 'demo-feedback', 'demo-discipline', 'restart-demo', 'close-demo'];
   const elements = Object.fromEntries(ids.map(id => [`#${id}`, new Element()]));
   const requests = [];
   const document = {
     querySelector(selector) { assert.ok(elements[selector], selector); return elements[selector]; },
     querySelectorAll(selector) { assert.equal(selector, '.discipline-card'); return elements['#discipline-list'].children; },
     createElement(tag) { return new Element(tag); },
+    createElementNS(_namespace, tag) { return new Element(tag); },
   };
   const fetch = async url => {
     requests.push(url);
     if (url === '/api/disciplines') return { ok: true, json: async () => ({ disciplines: [{ discipline_id: 1, name: 'Высшая математика', topic_count: 1 }] }) };
     if (url === '/api/disciplines/1/topics') return { ok: true, json: async () => ({ topics: [{ name: 'Функции' }] }) };
+    if (url === '/api/disciplines/1/resources') return { ok: true, json: async () => ({ resources: [{title:'Пример', kind:'лекции', provider:'МГУ', url:'https://example.org', link_status:'page_found'}] }) };
     throw new Error(`Unexpected request: ${url}`);
   };
   const source = fs.readFileSync(path.join(__dirname, '../app/static/app.js'), 'utf8');
@@ -76,14 +78,15 @@ test('интерфейс проходит два вопроса и не отпр
   let radio = elements['#demo-options'].children[1].children[0];
   radio.checked = true; radio.listeners.change();
   elements['#demo-form'].listeners.submit({ preventDefault() {} });
-  assert.match(elements['#demo-feedback'].textContent, /^Верно\./);
+  assert.equal(elements['#demo-feedback'].textContent, 'Верно.');
   elements['#next-question'].listeners.click();
   assert.equal(elements['#demo-progress'].textContent, 'ВОПРОС 2 ИЗ 2');
   radio = elements['#demo-options'].children[1].children[0];
   radio.checked = true; radio.listeners.change();
   elements['#demo-form'].listeners.submit({ preventDefault() {} });
-  assert.match(elements['#demo-feedback'].textContent, /^Не совсем\./);
+  assert.equal(elements['#demo-feedback'].textContent, 'Неверно.');
   elements['#next-question'].listeners.click();
   assert.equal(elements['#demo-finished'].hidden, false);
-  assert.deepEqual(requests, ['/api/disciplines', '/api/disciplines/1/topics']);
+  assert.deepEqual(requests, ['/api/disciplines', '/api/disciplines/1/resources', '/api/disciplines/1/topics']);
+  assert.equal(elements['#resource-list'].children.length, 1);
 });

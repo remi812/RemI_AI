@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Производные — RemI AI</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/derivatives.css?v=study-1">
+  <script defer src="/static/pilot-progress.js"></script>
+  <script defer src="/static/map-layout.js?v=2"></script>
+  <script defer src="/static/derivatives.js?v=map-unique-1"></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/" aria-label="RemI AI — главная"><span class="brand-icon">✳</span> RemI <span class="brand-ai">AI</span></a><span class="prototype">Учебный пилот</span></header>
+  <main class="pilot-content">
+    <p class="section-kicker" id="pilot-breadcrumb">ЗАГРУЖАЕМ МАРШРУТ</p>
+    <h1><span id="pilot-title">Твоя учебная цель</span> ✳</h1>
+    <p class="pilot-lead">Ответь на несколько вопросов, чтобы увидеть пример карты с результатами по отдельным навыкам.</p>
+    <div class="demo-notice">Учебный пилот: вопросы и связи не прошли экспертную проверку. Результат предварительный и не оценивает знания официально. Карта сохраняется только в этом браузере, без учётной записи.</div>
+    <p id="pilot-message" role="status" aria-live="polite">Загружаем учебную карту из базы…</p>
+    <p id="storage-message" role="status" aria-live="polite"></p><a id="saved-map-link" class="intro-link" href="#map-section" hidden>Открыть сохранённую карту ↓</a>
+    <section id="quiz" class="pilot-card" hidden aria-labelledby="quiz-title">
+      <div class="section-kicker">ШАГ 1 · НАЧАЛЬНЫЙ ТЕСТ</div><h2 id="quiz-title">Проверь основы</h2>
+      <p>Выбери по одному ответу на каждый вопрос. После завершения покажем предварительные результаты.</p>
+      <form id="quiz-form"><div id="questions"></div><p id="quiz-error" role="alert"></p><button class="primary-button" type="submit">Показать карту →</button></form>
+    </section>
+    <section id="map-section" class="pilot-card" hidden tabindex="-1" aria-labelledby="map-title">
+      <div class="section-kicker">ШАГ 2 · ТВОЯ КАРТА</div><h2 id="map-title">От основ к цели</h2>
+      <p>Связи и навыки загружены из базы. Цель находится внизу, её основы — выше. Выбери подтему, чтобы приблизиться к её карте и материалам.</p>
+      <div class="demo-notice">Два верных ответа — предварительный результат. Любая ошибка требует уточнения, а не доказывает пробел. Без вопросов навык остаётся непроверенным.</div>
+      <div class="legend"><span>🟢 Предварительно верно</span><span>🟡 Требует уточнения</span><span>⚪ Не проверено</span></div>
+      <div id="study-next" class="study-next" aria-labelledby="study-next-title">
+        <div><h3 id="study-next-title">Что изучить дальше</h3><p id="study-summary"></p></div>
+        <div id="study-suggestions" class="study-suggestions"></div>
+      </div>
+      <div class="map-overflow"><div id="graph" class="graph"></div></div>
+      <div id="detail" class="node-detail" hidden tabindex="-1"><button id="back-to-map" type="button" class="secondary-button">← К общей карте</button><div class="section-kicker">ВНУТРИ ТЕМЫ</div><h3 id="detail-title"></h3><p id="detail-description"></p><p id="inner-map-note"></p><div class="map-overflow inner-map-overflow"><div id="inner-map" class="graph"></div></div><p class="resource-note">Материалы из базы и дополнительной подборки. Проверка страницы не заменяет проверку преподавателя; условия доступа могут меняться.</p><div id="detail-resources" class="resource-list"></div>
+        <div class="retake-area"><h4>Проверь себя после изучения</h4><p>Изучи подходящие материалы и ответь на два вопроса. Если пройти эту проверку ещё раз, вопросы пока повторятся.</p><button id="retake-start" type="button" class="primary-button">Повторно проверить этот навык</button><p id="retake-message" role="status" aria-live="polite"></p><form id="retake-form" hidden><div id="retake-questions"></div><p id="retake-error" role="alert"></p><button id="retake-submit" class="primary-button" type="submit">Проверить ответы</button></form></div>
+      </div>
+      <button id="restart" type="button" class="secondary-button">Пройти ещё раз</button>
+      <button id="clear-progress" type="button" class="secondary-button">Удалить сохранённый результат</button>
+    </section>
+  </main>
+</body>
+</html>

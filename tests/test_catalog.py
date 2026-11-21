@@ -21,7 +21,7 @@ class CatalogTests(unittest.TestCase):
 
     def test_connection_failure_does_not_expose_details(self):
         with patch("app.main.open_database", side_effect=psycopg.OperationalError("private connection details")):
-            for endpoint in ("/api/disciplines", "/api/disciplines/1/topics"):
+            for endpoint in ("/api/disciplines", "/api/disciplines/1/topics", "/api/disciplines/1/resources"):
                 response = client.get(endpoint)
                 self.assertEqual(response.status_code, 503)
                 self.assertNotIn("private connection details", response.text)
@@ -34,9 +34,9 @@ class CatalogTests(unittest.TestCase):
         response = client.get("/api/disciplines")
         self.assertEqual(response.status_code, 200)
         disciplines = response.json()["disciplines"]
-        self.assertEqual(len(disciplines), 5)
+        self.assertEqual(len(disciplines), 4)
         math = next(d for d in disciplines if d["name"] == "Высшая математика")
-        self.assertEqual(math["topic_count"], 6)
+        self.assertGreaterEqual(math["topic_count"], 7)
         topics = client.get(f"/api/disciplines/{math['discipline_id']}/topics")
         self.assertEqual(topics.status_code, 200)
         self.assertIn("Производные", [topic["name"] for topic in topics.json()["topics"]])

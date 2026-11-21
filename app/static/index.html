@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f8f4">
   <title>RemI AI — пространство обучения</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=topic-map-2">
   <script src="/static/demo-data.js" defer></script>
   <script src="/static/demo-engine.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/map-layout.js?v=2" defer></script>
+  <script src="/static/app.js?v=map-topics-2" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -48,10 +49,18 @@
       </section>
 
       <section id="topics-section" class="topics-section" hidden aria-labelledby="topics-title">
-        <div class="topics-head"><div><div class="section-kicker">ВЫБРАННАЯ ДИСЦИПЛИНА</div><h2 id="topics-title"></h2><p>Темы, с которых можно начать знакомство.</p></div><button id="close-topics" class="close-button" type="button" aria-label="Закрыть темы">×</button></div>
+        <div class="topics-head"><div><div class="section-kicker">ШАГ 2 · ВЫБЕРИ ТЕМУ</div><h2 id="topics-title"></h2><p>Нажми на тему, чтобы открыть её карту и тест. Линии показывают принадлежность к дисциплине.</p></div><button id="close-topics" class="close-button" type="button" aria-label="Закрыть темы">×</button></div>
         <div id="topics-message" role="status" aria-live="polite"></div>
-        <ul id="topics-list" class="topics-list"></ul>
-        <div class="demo-callout"><div><strong>Хочешь попробовать?</strong><p id="demo-availability">Посмотри, как может выглядеть тест по этой дисциплине.</p></div><button id="start-demo" class="primary-button" type="button">Начать пример <span aria-hidden="true">↗</span></button></div>
+        <div id="topic-map-view"><div class="topic-map-scroll"><div id="topics-list" class="topic-map" aria-label="Карта тем дисциплины"></div></div></div>
+        <div id="topic-preview" class="topic-preview" hidden tabindex="-1">
+          <button id="topic-back" class="secondary-button" type="button">← К темам дисциплины</button>
+          <div class="section-kicker">КАРТА ТЕМЫ</div><h3 id="topic-preview-title"></h3>
+          <p id="topic-preview-message" role="status" aria-live="polite"></p>
+          <div id="topic-preview-scroll" class="topic-map-scroll" hidden><div id="topic-preview-graph" class="preview-graph"></div></div>
+          <div class="topic-preview-actions"><button id="preview-back" class="secondary-button" type="button" hidden>← К предыдущей карте</button><a id="topic-test-link" class="primary-button topic-test-link" hidden>Пройти начальный тест →</a></div>
+        </div>
+        <div class="demo-callout" hidden><div><strong>Учебный пример</strong><p id="demo-availability"></p></div><button id="start-demo" class="primary-button" type="button">Начать пример</button></div>
+        <div class="resources"><h3>Курсы и материалы</h3><p class="resource-note">Учебная подборка: содержание и условия доступа ещё нужно проверить. Ссылки, которые не удалось подтвердить, временно скрыты.</p><div id="resource-list" class="resource-list" aria-live="polite"></div></div>
       </section>
 
       <section id="demo-section" class="demo-section" hidden aria-labelledby="demo-title" tabindex="-1">
