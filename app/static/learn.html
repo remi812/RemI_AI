@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Учебный маршрут · RemI AI</title>
+<link rel="stylesheet" href="/static/styles.css"><link rel="stylesheet" href="/static/derivatives.css">
+<script defer src="/static/map-layout.js"></script><script defer src="/static/skill-map.js"></script><script defer src="/static/learn.js"></script></head>
+<body><header class="topbar"><a class="brand" href="/"><span class="brand-icon">✳</span> RemI <span class="brand-ai">AI</span></a>
+<span class="prototype" id="identity">Учебный пилот</span><button id="logout" class="secondary-button" hidden>Выйти</button></header>
+<main class="pilot-content"><a class="intro-link" href="/">← К дисциплинам</a><h1 id="title">Учебный маршрут</h1>
+<p id="synthetic" class="demo-notice" hidden>Демонстрационная база. Допуски выставлены для технической проверки на вымышленных профилях.</p><p id="notice" class="demo-notice" hidden></p><p role="alert" id="error"></p>
+<section class="pilot-card" id="auth"><h2>Твой профиль</h2>
+<form id="credentials"><label>Почта <input required name="email" type="email" autocomplete="email"></label>
+<label>Пароль <input required name="password" type="password" minlength="8" maxlength="256" autocomplete="current-password"></label>
+<label>Псевдоним для регистрации <input name="alias" maxlength="100" autocomplete="nickname"></label>
+<button class="primary-button" value="login">Войти</button><button class="secondary-button" value="register">Создать профиль</button></form></section>
+<section id="actions" class="pilot-card" hidden><button id="start" class="primary-button">Начать диагностику</button>
+<button id="moderate" class="secondary-button" hidden>Кабинет модератора</button></section>
+<section class="pilot-card" id="review" hidden><h2>Модерация</h2><label>Материалы и задания <select id="review-list"></select></label><div id="review-detail"></div>
+<label>Комментарий <input id="review-note" maxlength="1000"></label><div id="decisions"></div></section>
+<section id="quiz" class="pilot-card" hidden><h2 id="quiz-title">Диагностика</h2>
+<form id="answer-form"><fieldset class="pilot-question"><legend id="prompt"></legend><div id="answers"></div></fieldset>
+<button class="primary-button">Проверить ответ</button></form><p id="feedback" role="status"></p>
+<button id="continue" class="primary-button" hidden>Дальше →</button> <button id="stop" class="secondary-button">Завершить проверку</button></section>
+<section id="map-section" class="pilot-card"><h2 id="map-title">Предварительная карта</h2>
+<div id="next-box" class="study-next" hidden>
+<div id="change-box" hidden><h3>После повторной проверки</h3><p id="change-skill"></p><p id="change-result"></p></div>
+<h3 id="step-heading">Следующий шаг</h3><p id="next-text"></p><p id="step-path" hidden></p>
+<div id="step-resources" class="resource-list"></div><p id="step-mode" role="status"></p>
+<button class="suggestion-button" id="next-skill">Открыть подтему →</button>
+<details id="later-steps" hidden><summary>Дальнейшие шаги</summary><ol id="step-list" start="2"></ol></details></div>
+<button id="back" class="secondary-button" hidden>← Назад по карте</button><div class="map-overflow"><div id="graph" class="graph"></div></div>
+<div id="detail" class="node-detail" hidden><h3 id="skill-title" tabindex="-1"></h3><p id="skill-description"></p><p id="mode"></p>
+<div id="materials" class="resource-list"></div><button id="retake" class="primary-button">Проверить навык после изучения</button></div></section>
+<section id="history-box" class="pilot-card" hidden><h2>История проверок</h2><div id="history"></div></section>
+</main></body></html>
+

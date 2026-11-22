@@ -167,10 +167,11 @@ async function openTopic(topic, slug, button, discipline) {
     message.textContent = 'Карту и тест для этой темы ещё готовим.';
   } else {
     message.textContent = 'Загружаем карту темы…';
-    testLink.href = `/pilot/derivatives?pilot=${encodeURIComponent(slug)}`;
+    const adaptive = slug !== 'modeling';
+    testLink.href = adaptive ? `/learn/${slug}` : `/pilot/derivatives?pilot=${encodeURIComponent(slug)}`;
     testLink.textContent = `Пройти начальный тест: ${topic.name} →`;
     try {
-      const pilot = await getJson(`/api/pilot/${encodeURIComponent(slug)}`);
+      const pilot = await getJson(adaptive ? `/api/learn/${slug}/preview` : `/api/pilot/${encodeURIComponent(slug)}`);
       if (request !== previewRequest) return;
       const goal = pilot.nodes.find(node => node.name === pilot.goal);
       if (!goal) throw new Error('Цель не найдена');
@@ -183,7 +184,8 @@ async function openTopic(topic, slug, button, discipline) {
       }
       back.onclick = () => { const previous = history.pop(); if (previous) show(previous); };
       show(goal);
-      scroll.hidden = false; testLink.hidden = false;
+      scroll.hidden = false; testLink.hidden = slug === 'modeling';
+      if (slug === 'modeling') message.textContent = 'Обзорная карта моделирования. Выберите узел, чтобы изучить связи.';
     } catch {
       if (request !== previewRequest) return;
       message.textContent = 'Не удалось загрузить карту темы. Попробуй открыть её позже.';

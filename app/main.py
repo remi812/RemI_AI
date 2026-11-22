@@ -1,14 +1,14 @@
 """Каталог дисциплин RemI AI: HTTP-интерфейс и чтение из PostgreSQL."""
 
 import logging
-import os
 from pathlib import Path
 
 import psycopg
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from psycopg.rows import dict_row
+from app.pilot_db import open_database
+from app import accounts, adaptive, moderation
 from pydantic import BaseModel
 
 from app.derivatives import GOAL, RETAKE_QUESTIONS, evaluate, public_questions
@@ -21,16 +21,16 @@ app = FastAPI(title="RemI AI", version="0.1.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
-def open_database():
-    """Пароль берётся из PGPASSWORD или настроенного файла pgpass, не из кода."""
-    return psycopg.connect(
-        host=os.environ.get("PGHOST", "127.0.0.1"),
-        port=os.environ.get("PGPORT", "5432"),
-        dbname=os.environ.get("PGDATABASE", "RemI_AI"),
-        user=os.environ.get("PGUSER", "postgres"),
-        connect_timeout=3,
-        row_factory=dict_row,
-    )
+app.include_router(accounts.router)
+app.include_router(adaptive.router)
+app.include_router(moderation.router)
+
+
+@app.get("/learn/{slug}", include_in_schema=False)
+def learning_page(slug: str):
+    if slug not in adaptive.KEY_SKILLS:
+        raise HTTPException(404, "Маршрут не найден.")
+    return FileResponse(BASE_DIR / "static" / "learn.html")
 
 
 @app.get("/", include_in_schema=False)
@@ -169,7 +169,9 @@ class PilotAnswers(BaseModel):
 
 
 @app.get("/pilot/derivatives", include_in_schema=False)
-def derivatives_page():
+def derivatives_page(pilot: str = "derivatives"):
+    if pilot in adaptive.KEY_SKILLS:
+        return learning_page(pilot)
     return FileResponse(BASE_DIR / "static" / "derivatives.html")
 
 
