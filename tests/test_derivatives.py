@@ -9,7 +9,12 @@ from app.derivatives import QUESTIONS, RETAKE_QUESTIONS, evaluate, public_questi
 from app.main import PILOTS, app
 
 
-client = TestClient(app)
+from fastapi import FastAPI
+from app.main import legacy
+
+legacy_test_app = FastAPI()
+legacy_test_app.include_router(legacy)
+client = TestClient(legacy_test_app)
 nodes = [
     {"competency_id": 1, "name": "Вычислять значение функции", "topic": "Функции", "description": "Пример"},
     {"competency_id": 2, "name": "Находить производную", "topic": "Производные", "description": "Пример"},

@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#f7f8f4">
   <title>RemI AI — пространство обучения</title>
   <link rel="stylesheet" href="/static/styles.css?v=topic-map-2">
-  <script src="/static/demo-data.js" defer></script>
   <script src="/static/demo-engine.js" defer></script>
   <script src="/static/map-layout.js?v=2" defer></script>
   <script src="/static/app.js?v=adaptive-1" defer></script>
@@ -15,7 +14,7 @@
   <header class="topbar">
     <a class="brand" href="/" aria-label="RemI AI — главная"><span class="brand-icon">✳</span> RemI <span class="brand-ai">AI</span></a>
     <span class="topbar-label">ТВОЁ ПРОСТРАНСТВО ДЛЯ ОБУЧЕНИЯ</span>
-    <span class="prototype">Учебный прототип</span>
+    <a class="prototype" href="/profile">Моё обучение</a>
   </header>
 
   <main class="layout">
@@ -56,10 +55,15 @@
           <button id="topic-back" class="secondary-button" type="button">← К темам дисциплины</button>
           <div class="section-kicker">КАРТА ТЕМЫ</div><h3 id="topic-preview-title"></h3>
           <p id="topic-preview-message" role="status" aria-live="polite"></p>
+          <div id="modeling-overview" hidden>
+            <p>Представьте бак с постоянным притоком воды. Если вода не вытекает, её объём описывает модель V(t) = V₀ + qt. Здесь V₀ — начальный объём, q — приток за единицу времени. Если открыть слив, уравнение придётся изменить.</p>
+            <p>В <a href="/learn/functions">математике</a> можно проверить, как вычислять значение функции, в <a href="/learn/programming">Python</a> — проследить изменение объёма по шагам, а в <a href="/learn/control">ТАУ</a> — изучить регулирование уровня по показанию датчика.</p>
+            <h4>Материалы обзора</h4><div id="modeling-materials" class="resource-list"></div>
+          </div>
           <div id="topic-preview-scroll" class="topic-map-scroll" hidden><div id="topic-preview-graph" class="preview-graph"></div></div>
           <div class="topic-preview-actions"><button id="preview-back" class="secondary-button" type="button" hidden>← К предыдущей карте</button><a id="topic-test-link" class="primary-button topic-test-link" hidden>Пройти начальный тест →</a></div>
         </div>
-        <div class="demo-callout" hidden><div><strong>Учебный пример</strong><p id="demo-availability"></p></div><button id="start-demo" class="primary-button" type="button">Начать пример</button></div>
+        <a class="intro-link" href="/demo">Посмотреть отдельный демопример →</a><div class="demo-callout" hidden><div><strong>Демонстрация фиксированного теста</strong><p id="demo-availability"></p></div><button id="start-demo" class="primary-button" type="button">Начать пример</button></div>
         <div class="resources"><h3>Курсы и материалы</h3><p class="resource-note">Учебная подборка: содержание и условия доступа ещё нужно проверить. Ссылки, которые не удалось подтвердить, временно скрыты.</p><div id="resource-list" class="resource-list" aria-live="polite"></div></div>
       </section>
 

@@ -36,6 +36,10 @@ def synthetic_reviews():
         for item in items:
             if item["status"]=="pending":
                 checked(mod.post(f"/api/review/{kind}/{item['id']}",json={"decision":"approved","note":NOTE}))
+    for slug in KEY_SKILLS:
+        view = checked(mod.get(f"/api/learn/{slug}/preview"))
+        checked(mod.post(f"/api/review/graph/{slug}/decision",json={
+            "fingerprint":view["availability"]["fingerprint"],"approved":True}))
     return content
 
 

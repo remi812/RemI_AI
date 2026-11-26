@@ -13,9 +13,10 @@ def main():
         assert db.info.dbname.endswith("_demo")
         assert not db.execute("SELECT 1 FROM approved_pilot_questions LIMIT 1").fetchone()
     client,_ = profile("Пустой банк")
-    result = checked(client.post("/api/learn/control/start",json={}))
-    assert result["done"] and result["reason"]=="exhausted"
+    assert not checked(client.get("/api/learn/control/preview"))["availability"]["available"]
+    assert client.post("/api/learn/control/start",json={}).status_code == 409
     progress = checked(client.get("/api/learn/control/progress"))
+    assert not progress["history"]
     assert all(r["knowledge_status"]=="not_assessed" for r in progress["results"].values())
     config,nodes,_edges,_resources = get_pilot_graph("control")
     node = next(n for n in nodes if n["name"]==ERROR)

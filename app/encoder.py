@@ -69,8 +69,12 @@ def recommend(db, goal, skill, status, correct, total):
         except Exception as exc:
             logging.getLogger("remi").warning("Поиск по связям: %s", type(exc).__name__)
     evidence = f"Верных ответов {correct} из {total}." if total else "По этому навыку пока нет ответов."
+    if mode == "links":
+        from app.operations import counts,lock
+        with lock:
+            counts["recommendations_fallback"] += 1
     return {"mode": mode, "items": [
         {k: r[k] for k in ("title","course","url","description")} |
-        {"reason": f"{evidence} {status}. Раздел поможет с навыком «{skill['name']}». {r['description']}"}
+        {"access":"Русский язык · открытое чтение", "reason": f"{evidence} {status}. Раздел поможет с навыком «{skill['name']}». {r['description']}"}
         for r in rows[:2]]}
 

@@ -6,16 +6,11 @@ const topicsTitle = document.querySelector('#topics-title');
 const topicsMessage = document.querySelector('#topics-message');
 const topicsList = document.querySelector('#topics-list');
 const patterns = ['∑', '∫', '{ }', '◈', '⌁'];
-const pilotTopics = {
-  'Высшая математика': {'Производные':'derivatives'},
-  'Основы программирования': {'Циклы':'programming', 'Переменные':'programming-variables', 'Типы данных':'programming-types', 'Условия':'programming-conditions'},
-  'Моделирование систем': {'Математические модели':'modeling'},
-  'Теория автоматического управления': {'Обратная связь':'control', 'Понятие системы управления':'control-system', 'Сигналы и элементы системы':'control-signals'},
-};
 const topicMapView = document.querySelector('#topic-map-view');
 const topicPreview = document.querySelector('#topic-preview');
 const previewGraph = document.querySelector('#topic-preview-graph');
 let previewRequest = 0;
+let topicTrigger;
 let topicsRequest = 0;
 let selectedDiscipline = null;
 let demoState = null;
@@ -39,15 +34,21 @@ async function getJson(url) {
   return response.json();
 }
 
+function retryLoad(container, message, load) {
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'secondary-button';
+  retry.textContent = 'Повторить загрузку';
+  retry.onclick = load;
+  container.replaceChildren(document.createTextNode(message + ' '), retry);
+}
+
 async function showTopics(discipline, button) {
   const request = ++topicsRequest;
   selectedDiscipline = discipline;
   demoState = null;
   demoSection.hidden = true;
-  document.querySelector('#start-demo').disabled = !RemiDemoQuestions[discipline.name];
-  document.querySelector('#demo-availability').textContent = RemiDemoQuestions[discipline.name]
-    ? 'Посмотри, как может выглядеть тест по этой дисциплине.'
-    : 'Для этой дисциплины пример пока не подготовлен.';
+  document.querySelector('#demo-availability').textContent = 'Два фиксированных примера. Ответы не влияют на профиль.';
   document.querySelectorAll('.discipline-card').forEach(card => {
     card.classList.remove('selected');
     card.setAttribute('aria-pressed', 'false');
@@ -83,7 +84,9 @@ async function showTopics(discipline, button) {
       resources.append(item);
     }
     if (!result.resources.length) resources.textContent = 'Материалы пока не добавлены.';
-  }).catch(() => { if (request === topicsRequest) resources.textContent = 'Не удалось загрузить материалы.'; });
+  }).catch(() => {
+    if (request === topicsRequest) retryLoad(resources,'Не удалось загрузить материалы.',() => showTopics(discipline,button));
+  });
   topicsMessage.textContent = 'Загружаем темы…';
   try {
     const result = await getJson(`/api/disciplines/${discipline.discipline_id}/topics`);
@@ -93,7 +96,7 @@ async function showTopics(discipline, button) {
 
   } catch {
     if (request !== topicsRequest) return;
-    topicsMessage.textContent = 'Не получилось загрузить темы. Попробуй ещё раз.';
+    retryLoad(topicsMessage,'Не удалось загрузить темы.',() => showTopics(discipline,button));
   }
   topicsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -124,14 +127,14 @@ function drawTopicsMap(topics, discipline) {
   }
   topicsList.append(svg);
   topics.forEach((topic, index) => {
-    const slug = pilotTopics[discipline.name]?.[topic.name];
+    const slug = topic.slug;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `topic-map-node ${slug ? 'available' : 'pending'}`;
     button.style.left = `${positions[index].x / 10}%`;
     button.style.top = `${positions[index].y}px`;
     const title = document.createElement('strong'); title.textContent = topic.name;
-    const note = document.createElement('small'); note.textContent = slug ? 'Открыть карту ↗' : 'Маршрут готовится';
+    const note = document.createElement('small'); note.textContent = slug === 'modeling' ? 'Обзорная карта' : slug ? 'Открыть карту темы ↗' : 'Маршрут готовится';
     button.append(title, note);
     button.addEventListener('click', () => openTopic(topic, slug, button, discipline));
     topicsList.append(button);
@@ -144,10 +147,11 @@ function drawTopicsMap(topics, discipline) {
 }
 
 async function openTopic(topic, slug, button, discipline) {
+  topicTrigger = button;
   const request = ++previewRequest;
   const rect = topicsList.getBoundingClientRect(), target = button.getBoundingClientRect();
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!reduced && topicsList.animate) {
+  if (!topicMapView.hidden && !reduced && topicsList.animate) {
     topicsList.style.transformOrigin = `${target.left + target.width / 2 - rect.left}px ${target.top + target.height / 2 - rect.top}px`;
     const animation = topicsList.animate([{transform:'scale(1)', opacity:1}, {transform:'scale(1.6)', opacity:0}], {duration:380, easing:'ease-in', fill:'forwards'});
     try { await animation.finished; } catch {}
@@ -161,6 +165,8 @@ async function openTopic(topic, slug, button, discipline) {
   const testLink = document.querySelector('#topic-test-link');
   const scroll = document.querySelector('#topic-preview-scroll');
   const back = document.querySelector('#preview-back');
+  const overview = document.querySelector('#modeling-overview');
+  overview.hidden = true;
   back.hidden = true; scroll.hidden = true; testLink.hidden = true;
   previewGraph.replaceChildren();
   if (!slug) {
@@ -168,10 +174,10 @@ async function openTopic(topic, slug, button, discipline) {
   } else {
     message.textContent = 'Загружаем карту темы…';
     const adaptive = slug !== 'modeling';
-    testLink.href = adaptive ? `/learn/${slug}` : `/pilot/derivatives?pilot=${encodeURIComponent(slug)}`;
-    testLink.textContent = `Пройти начальный тест: ${topic.name} →`;
+    if (adaptive) testLink.href = `/learn/${slug}`;
+    testLink.textContent = 'Открыть диагностику и мой прогресс →';
     try {
-      const pilot = await getJson(adaptive ? `/api/learn/${slug}/preview` : `/api/pilot/${encodeURIComponent(slug)}`);
+      const pilot = await getJson(adaptive ? `/api/learn/${slug}/preview` : '/api/overview/modeling');
       if (request !== previewRequest) return;
       const goal = pilot.nodes.find(node => node.name === pilot.goal);
       if (!goal) throw new Error('Цель не найдена');
@@ -180,15 +186,28 @@ async function openTopic(topic, slug, button, discipline) {
         renderPreview(pilot, node, selected => { history.push(node); show(selected); });
         document.querySelector('#topic-preview-title').textContent = node.name;
         back.hidden = !history.length;
-        message.textContent = 'Это предварительная карта основ. Нажми на узел, чтобы приблизиться ещё глубже.';
+        message.textContent = node.description + (adaptive && !pilot.availability.available ? ' Доступен обзор. Диагностика ожидает допуска преподавателя.' : '');
       }
       back.onclick = () => { const previous = history.pop(); if (previous) show(previous); };
       show(goal);
-      scroll.hidden = false; testLink.hidden = slug === 'modeling';
-      if (slug === 'modeling') message.textContent = 'Обзорная карта моделирования. Выберите узел, чтобы изучить связи.';
+      scroll.hidden = false; testLink.hidden = !adaptive || !pilot.availability.available;
+      if (!adaptive) {
+        const container = document.querySelector('#modeling-materials');
+        container.replaceChildren();
+        for (const item of pilot.materials) {
+          const card = document.createElement('article'); card.className = 'resource-card';
+          const link = document.createElement('a'); link.href = item.url;
+          link.textContent = item.course + ' · ' + item.title;
+          link.target = '_blank'; link.rel = 'noopener noreferrer';
+          const description = document.createElement('p'); description.textContent = item.description;
+          card.append(link, description); container.append(card);
+        }
+        if (!pilot.materials.length) container.textContent = 'Материалы обзора ожидают проверки.';
+        overview.hidden = false;
+      }
     } catch {
       if (request !== previewRequest) return;
-      message.textContent = 'Не удалось загрузить карту темы. Попробуй открыть её позже.';
+      retryLoad(message,'Не удалось загрузить карту темы.',() => openTopic(topic,slug,button,discipline));
     }
   }
   topicPreview.classList.remove('topic-reveal');
@@ -231,7 +250,7 @@ function renderPreview(pilot, goal, selectNode) {
 }
 
 document.querySelector('#topic-back').addEventListener('click', () => {
-  previewRequest++; topicPreview.hidden = true; topicMapView.hidden = false;
+  previewRequest++; topicPreview.hidden = true; topicMapView.hidden = false; topicTrigger?.focus();
 });
 
 function renderDiscipline(discipline, index) {
@@ -275,7 +294,8 @@ async function loadDisciplines() {
     message.hidden = result.disciplines.length > 0;
     count.textContent = `${result.disciplines.length} В КАТАЛОГЕ`;
   } catch {
-    message.textContent = 'Не удалось загрузить дисциплины. Убедись, что база данных доступна, и обнови страницу.';
+    message.textContent = 'Не удалось загрузить дисциплины. Обнови страницу или попробуй позже.';
+    const retry = document.createElement('button'); retry.textContent = 'Повторить загрузку'; retry.className = 'secondary-button'; retry.onclick = loadDisciplines; message.append(' ',retry);
     message.classList.add('error');
     count.textContent = 'НЕТ СОЕДИНЕНИЯ';
   }
@@ -284,6 +304,7 @@ async function loadDisciplines() {
 document.querySelector('#close-topics').addEventListener('click', () => {
   topicsRequest++;
   previewRequest++;
+  document.querySelector('.discipline-card.selected')?.focus();
   selectedDiscipline = null;
   demoState = null;
   demoSection.hidden = true;
@@ -335,7 +356,13 @@ function renderDemo() {
   nextQuestion.textContent = demoState.index + 1 === demoState.questions.length ? 'Завершить пример' : 'Следующий вопрос →';
 }
 
-function startDemo() {
+async function startDemo() {
+  const discipline = selectedDiscipline;
+  if (!globalThis.RemiDemoQuestions) {
+    try { await import('/static/demo-data.js'); }
+    catch { document.querySelector('#demo-availability').textContent = 'Пример не загрузился. Попробуйте ещё раз.'; return; }
+  }
+  if (selectedDiscipline !== discipline) return;
   const questions = selectedDiscipline && RemiDemoQuestions[selectedDiscipline.name];
   if (!questions) return;
   demoState = RemiDemoEngine.start(questions);

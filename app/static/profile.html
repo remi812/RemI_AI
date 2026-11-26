@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Моё обучение · RemI AI</title><link rel="stylesheet" href="/static/styles.css"><link rel="stylesheet" href="/static/derivatives.css"><script src="/static/profile.js" defer></script></head>
+<body><header class="topbar"><a href="/" class="brand">✳ RemI AI</a></header><main class="pilot-content">
+<a class="intro-link" href="/">← Каталог дисциплин</a><h1>Моё обучение</h1>
+<p role="status" tabindex="-1" id="status"></p><button class="secondary-button" id="retry" hidden>Повторить загрузку</button>
+<section id="login" class="pilot-card" hidden><h2>Вход в профиль</h2>
+<form id="credentials"><label>Почта <input name="email" type="email" required autocomplete="email"></label><label>Пароль <input type="password" name="password" required autocomplete="current-password"></label><button class="primary-button">Войти</button></form>
+<details><summary>Восстановить пароль</summary><form id="request-code"><label>Почта профиля <input name="email" type="email" required autocomplete="email"></label><button>Получить код</button></form><form id="reset"><label>Код из письма <input name="token" required autocomplete="one-time-code"></label><label>Новый пароль <input name="password" type="password" required minlength="8" maxlength="256" autocomplete="new-password"></label><button>Сохранить пароль</button></form></details>
+</section><section id="dashboard" class="pilot-card" hidden><h2 id="alias"></h2><h3>Мои темы</h3><ul id="routes"></ul><p id="empty" hidden>Пока нет начатых тем. Выберите дисциплину в каталоге.</p><button class="secondary-button" id="logout">Выйти</button></section>
+<section class="pilot-card" id="privacy"><h2>Данные и поддержка</h2><p id="data-notice" hidden></p><p>Профиль хранит псевдоним, почту, защищённый хеш пароля и историю ответов. История используется для построения учебного маршрута. Срок входа — 7 дней, код восстановления действует 15 минут.</p><p id="support">По вопросам доступа и удаления профиля обратитесь к организатору вашей учебной группы.</p></section></main></body></html>

@@ -72,3 +72,17 @@ footer { display: flex; justify-content: space-between; border-top: 1px solid #e
 .topic-reveal { animation:topic-reveal .35s ease both; }
 @keyframes topic-reveal { from {opacity:0;transform:scale(.95)} to {opacity:1;transform:scale(1)} }
 @media (prefers-reduced-motion:reduce) { .topic-reveal { animation:none; } }
+
+.layout,.content,.topics-section,.topic-preview,.pilot-card { min-width:0; }
+:focus-visible { outline:3px solid #245493;outline-offset:3px; }
+.card-description,.section-heading p,.topics-head p,.resource-card p,.demo-notice,.topic-preview p,.topic-map-node small,.section-kicker,.count,.breadcrumb,.card-bottom {color:#4e6654}
+@media(max-width:600px){
+ .layout {display:block} .topic-map-scroll,.map-overflow {max-width:100%;overflow:auto}
+ #topics-list {display:flex;flex-direction:column;gap:12px;padding:12px;height:auto!important;min-width:0!important}
+ #topics-list svg {display:none}
+ #topics-list .topic-map-node,#topics-list .topic-map-root {position:static;transform:none;width:100%;min-height:60px}
+ .topic-preview-actions,footer,.topbar {flex-wrap:wrap}
+ .content,.pilot-content {width:100%;box-sizing:border-box}
+ .pilot-content input,.pilot-content select {max-width:100%;box-sizing:border-box}
+ .pilot-card,.topic-preview {overflow-wrap:anywhere}
+}

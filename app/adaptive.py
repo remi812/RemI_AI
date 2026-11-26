@@ -1,5 +1,7 @@
 """Transactional selection and scoring against reviewed snapshots in PostgreSQL."""
 import os
+import random
+from app.availability import inventory
 from collections import defaultdict, deque
 from decimal import Decimal, InvalidOperation
 
@@ -16,11 +18,19 @@ LABELS = {"mastered":"Предварительно освоено","possible_gap
           "not_assessed":"Не проверено","needs_review":"Требует уточнения"}
 
 
-def graph(slug):
+def graph(slug,db=None):
     from app.main import get_pilot_graph
     if slug not in KEY_SKILLS:
         raise HTTPException(404,"Адаптивный маршрут пока не подготовлен.")
-    config,nodes,edges,_ = get_pilot_graph(slug)
+    if db is not None:
+        from app.catalog_routes import PILOTS
+        from app.main import read_pilot_graph
+        config = PILOTS[slug]
+        nodes,edges,_ = read_pilot_graph(config,db,resources=False)
+        if not nodes:
+            raise HTTPException(503,"Карта пока недоступна.")
+    else:
+        config,nodes,edges,_ = get_pilot_graph(slug,catalog=True)
     return config,nodes,edges
 
 
@@ -116,7 +126,7 @@ def advance(db,s,stop=False):
     sid,uid = s["session_id"],s["student_id"]
     if s["status"]!="in_progress":
         return {"session_id":sid,"done":True,"reason":s["stop_reason"]}
-    _,nodes,edges = graph(s["pilot_slug"])
+    _,nodes,edges = graph(s["pilot_slug"],db)
     answers = evidence(db,sid)
     skills = planned(s,nodes,edges,answers)
     if stop:
@@ -147,8 +157,11 @@ def advance(db,s,stop=False):
             missing = True
         if not q:
             return finish(db,s,answers,skills,"exhausted" if missing else "sufficient")
-    return {"session_id":sid,"done":False,"question":{k:q[k] for k in
-            ("question_version_id","question_text","answer_type","options_snapshot")}}
+    public = {k:q[k] for k in ("question_version_id","question_text","answer_type","options_snapshot")}
+    if public["options_snapshot"]:
+        public["options_snapshot"] = list(public["options_snapshot"])
+        random.Random(f"{uid}-{sid}-{q['question_version_id']}").shuffle(public["options_snapshot"])
+    return {"session_id":sid,"done":False,"question":public}
 
 
 class Start(BaseModel):
@@ -161,9 +174,9 @@ class Answer(BaseModel):
 
 
 @router.get("/{slug}/preview")
-def preview(slug: str):
-    config,nodes,edges = graph(slug)
-    return {**config,"nodes":nodes,"edges":edges,
+def preview(slug: str,db=DB):
+    config,nodes,edges = graph(slug,db)
+    return {**config,"nodes":nodes,"edges":edges, "availability":inventory(db,slug,nodes,edges,KEY_SKILLS[slug],rules()["votes"]),
             "synthetic":os.getenv("PGDATABASE","").endswith("_demo")}
 
 
@@ -171,7 +184,7 @@ def preview(slug: str):
 def start(slug: str,data: Start,person=Depends(owner),db=DB):
     uid = person["student_id"]
     lock_owner(db,uid)
-    cfg,nodes,_ = graph(slug)
+    cfg,nodes,edges = graph(slug,db)
     goal = next(n["competency_id"] for n in nodes if n["name"]==cfg["goal"])
     if data.skill is not None and data.skill not in [n["competency_id"] for n in nodes]:
         raise HTTPException(422,"Навык вне маршрута.")
@@ -183,6 +196,11 @@ def start(slug: str,data: Start,person=Depends(owner),db=DB):
             AND pilot_slug=%s AND retake_skill IS NULL AND status<>'in_progress'""",(uid,slug)).fetchone():
         raise HTTPException(409,"Сначала пройдите начальную диагностику.")
     if not active:
+        capacity = inventory(db,slug,nodes,edges,KEY_SKILLS[slug],rules()["votes"],uid)
+        if not capacity["available"]:
+            raise HTTPException(409,"Диагностика ожидает допуска. Доступен обзор карты.")
+        if not (capacity["remaining"][data.skill]["retake"] if data.skill else capacity["initial_remaining"]):
+            return {"session_id":None,"done":True,"reason":"exhausted"}
         active = db.execute("""INSERT INTO diagnostic_sessions(student_id,pilot_slug,target_competency_id,
             status,retake_skill,pilot_rules) VALUES (%s,%s,%s,'in_progress',%s,%s) RETURNING *""",
             (uid,slug,goal,data.skill,Jsonb(rules()))).fetchone()
@@ -199,6 +217,8 @@ def answer(sid:int,data: Answer,person=Depends(owner),db=DB):
         (sid,data.version)).fetchone()
     if previous and previous["answer_text"]==data.value:
         return {"correct":previous["is_correct"],**advance(db,s)}
+    db.execute("""SELECT q.question_id FROM questions q JOIN pilot_issues i USING(question_id)
+        WHERE i.session_id=%s AND i.question_version_id=%s FOR SHARE OF q""",(sid,data.version))
     q = db.execute("""SELECT q.* FROM pilot_issues i JOIN approved_pilot_questions q USING(question_version_id)
         WHERE i.session_id=%s AND i.question_version_id=%s AND i.answer_id IS NULL AND NOT i.withdrawn
         FOR SHARE OF i""",(sid,data.version)).fetchone()
@@ -257,40 +277,50 @@ def study_steps(goal, key_skills, edges, latest):
     return steps
 
 
+def profile_estimates(db,uid,ids):
+    estimates = db.execute("""SELECT e.competency_id,e.estimate_id,s.pilot_slug,e.knowledge_status,e.session_id,
+        count(a.answer_id)::int AS total,count(a.answer_id) FILTER (WHERE a.is_correct)::int AS correct
+        FROM mastery_estimates e JOIN diagnostic_sessions s USING(session_id,student_id)
+        LEFT JOIN estimate_evidence ev USING(estimate_id) LEFT JOIN student_answers a USING(answer_id)
+        WHERE e.student_id=%s AND s.pilot_slug IS NOT NULL AND e.competency_id=ANY(%s) GROUP BY e.estimate_id,s.pilot_slug ORDER BY e.estimate_id""",(uid,ids)).fetchall()
+    latest = {}
+    for row in estimates:
+        skill = row["competency_id"]
+        sufficient = row["knowledge_status"] in ("mastered","possible_gap")
+        prior = latest.get(skill)
+        if not prior or sufficient or (prior["knowledge_status"] not in ("mastered","possible_gap") and row["total"]):
+            latest[skill] = row
+    return estimates,latest
+
+
 @router.get("/{slug}/progress")
 def progress(slug:str,person=Depends(owner),db=DB):
-    cfg,nodes,edges = graph(slug)
+    cfg,nodes,edges = graph(slug,db)
     uid = person["student_id"]
     history = db.execute("""SELECT s.session_id,s.started_at,s.status,s.stop_reason,s.retake_skill,
         c.name AS skill FROM diagnostic_sessions s LEFT JOIN competencies c ON c.competency_id=s.retake_skill
         WHERE student_id=%s AND pilot_slug=%s ORDER BY s.session_id DESC""",(uid,slug)).fetchall()
-    estimates = db.execute("""SELECT e.competency_id,e.knowledge_status,e.session_id,
-        count(a.answer_id)::int AS total,count(a.answer_id) FILTER (WHERE a.is_correct)::int AS correct
-        FROM mastery_estimates e JOIN diagnostic_sessions s USING(session_id,student_id)
-        LEFT JOIN estimate_evidence ev USING(estimate_id) LEFT JOIN student_answers a USING(answer_id)
-        WHERE e.student_id=%s AND s.pilot_slug=%s GROUP BY e.estimate_id ORDER BY e.estimate_id""",(uid,slug)).fetchall()
+    estimates, latest = profile_estimates(db,uid,[n["competency_id"] for n in nodes])
     by_session = defaultdict(list)
-    latest = {}
     for row in estimates:
-        skill = row["competency_id"]
-        by_session[row["session_id"]].append(row)
-        if row["total"] or skill not in latest:
-            latest[skill] = row
+        if row["pilot_slug"] == slug:
+            by_session[row["session_id"]].append(row)
     for s in history:
         s["estimates"] = by_session[s["session_id"]]
     ids = {n["name"]:n["competency_id"] for n in nodes}
     steps = study_steps(ids[cfg["goal"]], {ids[k] for k in KEY_SKILLS[slug]}, edges, latest)
-    return {"history": history, "results": latest, "steps": steps,
+    return {"availability":inventory(db,slug,nodes,edges,KEY_SKILLS[slug],rules()["votes"],uid), "history": history, "results": latest, "steps": steps,
             "next": steps[0]["skill"] if steps else None}
 
 
 @router.get("/{slug}/skills/{skill}/materials")
 def materials(slug:str,skill:int,person=Depends(owner),db=DB):
-    cfg,nodes,_ = graph(slug)
+    cfg,nodes,edges = graph(slug,db)
     node = next((n for n in nodes if n["competency_id"]==skill),None)
     if not node:
         raise HTTPException(404,"Навык не найден.")
-    row = progress(slug,person,db)["results"].get(skill,{})
+    _, latest = profile_estimates(db,person["student_id"],[skill])
+    row = latest.get(skill,{})
     return recommend(db,cfg["goal"],node,LABELS[row.get("knowledge_status","not_assessed")],
                      row.get("correct",0),row.get("total",0))
 

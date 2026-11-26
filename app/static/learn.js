@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const slug = location.pathname.startsWith('/learn/') ? location.pathname.split('/').pop()
   : new URLSearchParams(location.search).get('pilot') || 'derivatives';
 const api = '/api/learn/' + encodeURIComponent(slug);
-const reasons = {sufficient:'Собрано достаточно ответов', exhausted:'Банк исчерпан. Новых допущенных заданий для этой проверки нет',
+const reasons = {sufficient:'Собрано достаточно ответов', exhausted:'Вы уже видели все доступные задания или для этого навыка ещё нет проверенных вопросов.',
   limit:'Достигнут лимит проверки', student:'Проверка завершена студентом'};
 const labels = {mastered:'Предварительно освоено',possible_gap:'Вероятный пробел',needs_review:'Требует уточнения',not_assessed:'Не проверено'};
 let pilot, account, progress, current, selected, path = [], reviews = [];
@@ -30,7 +30,7 @@ function action(fn) {
     if (target) target.disabled = true;
     $('error').textContent = '';
     try { await fn(event); }
-    catch (error) { $('error').textContent = error.message; }
+    catch (error) { $('error').textContent = error.message; $('error').focus(); }
     finally { if (target) target.disabled = false; }
   };
 }
@@ -65,21 +65,36 @@ async function openNode(node, remember=true) {
   $('skill-title').focus();
   $('skill-description').textContent = node.description;
   $('materials').replaceChildren();
-  $('retake').hidden = !progress?.history.some(s => s.status !== 'in_progress') || !!current;
+  $('retake').hidden = true;
   $('mode').textContent = account ? 'Загружаем материалы…' : 'Войдите, чтобы получить рекомендации по своим ответам.';
   if (!account) return;
-  const data = await request(api+'/skills/'+node.competency_id+'/materials');
-  if (selected !== node) return;
-  renderMaterials(data, $('materials'), $('mode'));
+  try {
+    const data = await request(api+'/skills/'+node.competency_id+'/materials');
+    if (selected !== node) return;
+    renderMaterials(data, $('materials'), $('mode'));
+    const available = progress.availability;
+    const studied = progress.history.some(s => !s.retake_skill && s.status !== 'in_progress');
+    const fresh = available.remaining[node.competency_id].retake;
+    $('retake').hidden = !available.available || !data.items.length || !studied || !fresh || !!current;
+    if (studied && !fresh && available.available) $('mode').append(' Вы уже видели все повторные задания по этому навыку.');
+  } catch {
+    if (selected !== node) return;
+    $('mode').textContent = 'Не удалось загрузить материалы.';
+    const retry = element('button','Попробовать снова');
+    retry.type = 'button'; retry.className = 'secondary-button';
+    retry.onclick = action(() => openNode(node, false));
+    $('materials').replaceChildren(retry);
+  }
 }
 function renderMaterials(data, container, mode, limit = data.items.length) {
-  mode.textContent = {semantic:'Смысловой подбор · локальная MiniLM', links:'Подбор по связям навыка · модель или индекс недоступны',
+  mode.textContent = {semantic:'Подобрано по смыслу цели и навыка · MiniLM', links:'Подобрано по теме навыка. Смысловой поиск сейчас недоступен.',
     empty:'Подходящего одобренного материала для этого навыка пока нет.'}[data.mode];
+  if (data.items.length === 1 && data.mode === 'semantic') mode.textContent = 'Единственный допущенный раздел по этому навыку.';
   container.replaceChildren();
   for (const item of data.items.slice(0, limit)) {
     const card = element('article',''); card.className = 'resource-card';
     const link = element('a',item.title); link.href = item.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-    card.append(element('strong',item.course),link,element('p',item.reason)); container.append(card);
+    card.append(element('strong',item.course),link,element('p',item.access),element('p',item.reason)); container.append(card);
   }
 }
 function overview() {
@@ -88,7 +103,7 @@ function overview() {
   $('next-box').hidden = !progress?.history.some(s => s.status !== 'in_progress');
   map(goal());
 }
-$('back').onclick = action(async () => { const prior = path.pop(); if (prior) await openNode(prior,false); else overview(); });
+$('back').onclick = action(async () => { const prior = path.pop(); if (prior) await openNode(prior,false); else { overview(); $('map-title').focus(); } });
 $('next-skill').onclick = action(() => openNode(nodeById(progress.next)));
 function showRetakeChange(history) {
   const finished = history.filter(s => s.status !== 'in_progress');
@@ -150,13 +165,17 @@ async function refresh() {
   showRetakeChange(history);
   const active = history.find(s => s.status === 'in_progress');
   $('start').textContent = active ? 'Продолжить проверку' : completed ? 'Пройти новую диагностику' : 'Начать диагностику';
+  const available = progress.availability;
+  $('start').hidden = !active && (!available.available || !available.initial_remaining);
+  if (!active && !available.available) notice('Доступен обзор карты. Диагностика ожидает допуска преподавателя.');
+  else if (!active && !available.initial_remaining) notice('Вы уже видели все вступительные задания для этой цели.');
   overview();
   if (completed) await showStudySteps(progress);
 }
 function displayQuestion() {
   $('feedback').textContent = ''; $('continue').hidden = true; $('answer-form').hidden = false;
   const q = current.question;
-  $('prompt').textContent = q.question_text; $('answers').replaceChildren();
+  $('prompt').textContent = q.question_text; $('prompt').focus(); $('answers').replaceChildren();
   if (q.answer_type === 'choice') {
     for (const option of q.options_snapshot) {
       const label = element('label',''), input = document.createElement('input');
@@ -174,7 +193,7 @@ async function continueSession() {
   if (current.done) {
     notice(reasons[current.reason]); current = null; $('quiz').hidden = true;
     $('map-section').hidden = $('actions').hidden = false;
-    await refresh();
+    await refresh(); $('map-title').focus();
   } else { displayQuestion(); }
 }
 async function begin(skill) {
@@ -193,7 +212,7 @@ $('answer-form').onsubmit = action(async () => {
   try {
     const result = await request('/api/learn/sessions/'+current.session_id+'/answer',{version:current.question.question_version_id,value});
     current = result; $('feedback').textContent = result.correct ? 'Верно' : 'Неверно';
-    $('answer-form').hidden = true; $('continue').hidden = false; $('stop').hidden = result.done;
+    $('answer-form').hidden = true; $('feedback').focus(); $('continue').hidden = false; $('stop').hidden = result.done;
     $('continue').textContent = result.done ? 'Открыть карту →' : 'Следующий вопрос →';
   } catch (error) {
     if (error.status === 409) { await refresh(); await begin(progress.history.find(s => s.status==='in_progress')?.retake_skill || null); }
@@ -208,9 +227,11 @@ $('credentials').onsubmit = action(async event => {
 $('logout').onclick = action(async () => {await request('/api/account/logout',{}); location.reload();});
 async function loadAccount() {
   try { account = await request('/api/account/me'); }
-  catch (error) { if (error.status !== 401) throw error; overview(); return; }
-  $('identity').textContent = account.alias; $('logout').hidden = $('actions').hidden = false;
-  $('auth').hidden = true; $('moderate').hidden = !account.moderator; await refresh();
+  catch (error) { if (error.status !== 401) throw error; $('auth').hidden = !pilot.availability.available; overview(); return; }
+  $('identity').textContent = account.alias; $('logout').hidden = false;
+  $('auth').hidden = true; $('moderate').hidden = !account.moderator;
+  await refresh();
+  $('actions').hidden = false;
 }
 function showReview() {
   const row = reviews[$('review-list').selectedIndex];
@@ -242,9 +263,24 @@ for (const [decision,title] of Object.entries({approved:'Допустить',nee
   });
   $('decisions').append(button);
 }
+for (const [approved,label] of [[true,'Допустить карту'],[false,'Отозвать допуск карты']]) {
+  const button = element('button',label);
+  button.className = 'secondary-button';
+  button.onclick = action(async () => {
+    await request('/api/review/graph/'+encodeURIComponent(slug)+'/decision',{fingerprint:pilot.availability.fingerprint,approved});
+    location.reload();
+  });
+  $('graph-decisions').append(button);
+}
+$('retry-page').onclick = () => location.reload();
 action(async () => {
+  $('retry-page').hidden = false;
   pilot = await request(api+'/preview'); $('title').textContent = pilot.goal; document.title = pilot.topic+' · RemI AI';
   $('synthetic').hidden = !pilot.synthetic;
+  for (const e of pilot.edges) $('edge-list').append(element('li',nodeById(e.prerequisite_id).name+' → '+nodeById(e.competency_id).name));
+  $('map-section').hidden = false;
+  if (!pilot.availability.available) notice('Доступен обзор карты. Диагностика ожидает допуска преподавателя.');
   await loadAccount();
+  $('retry-page').hidden = true;
 })();
 

@@ -55,3 +55,33 @@ def review(kind:Literal["questions","sections"],item:int,data:Review,mod=Depends
             index_section(db,item)
     return {"status":status}
 
+
+class GraphReview(BaseModel):
+    fingerprint: str = Field(min_length=64,max_length=64)
+    approved: bool
+
+
+@router.post("/graph/{slug}/decision")
+def decide_graph(slug:str,data:GraphReview,mod=Depends(moderator),db=DB):
+    from app.adaptive import graph, KEY_SKILLS
+    from app.availability import fingerprint
+    _,nodes,edges = graph(slug,db)
+    current = fingerprint(slug,nodes,edges,KEY_SKILLS[slug])
+    if current != data.fingerprint:
+        raise HTTPException(409,"Карта изменилась. Обновите страницу и проверьте связи.")
+    db.execute("INSERT INTO graph_reviews(slug,fingerprint,moderator_id,approved) VALUES (%s,%s,%s,%s)",
+               (slug,current,mod,data.approved))
+    return {"approved":data.approved}
+
+
+@router.get("/metrics")
+def metrics(db=DB):
+    from app.operations import counts,lock,resident_bytes
+    with lock:
+        result = dict(counts)
+    result["resident_bytes"] = resident_bytes()
+    result["database_connections"] = db.execute(
+        "SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database()").fetchone()["n"]
+    result["exhausted_sessions"] = db.execute(
+        "SELECT count(*) AS n FROM diagnostic_sessions WHERE stop_reason='exhausted'").fetchone()["n"]
+    return result
